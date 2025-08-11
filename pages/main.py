@@ -1,3 +1,12 @@
+import sys
+
+# Force Python to use pysqlite3 instead of the system sqlite3
+try:
+    import pysqlite3
+    sys.modules["sqlite3"] = pysqlite3
+except ImportError:
+    pass
+
 import streamlit as st
 import random
 import time
