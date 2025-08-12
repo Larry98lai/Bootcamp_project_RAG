@@ -35,7 +35,7 @@ FOLDER_ID = "1B8fvzo_LiLbXDp3Y2vq8yWHOOH_V-BD-"
 DOWNLOAD_FOLDER = "downloaded_files"
 
 # Download files from Google Drive
-downloaded_files = download_drive_files(FOLDER_ID, SERVICE_ACCOUNT_PATH, output_dir=DOWNLOAD_FOLDER)
+downloaded_files = download_drive_files(FOLDER_ID, output_dir=DOWNLOAD_FOLDER)
 
 # Build RAG and EXA tools
 rag_tool = build_rag_tool_from_files(downloaded_files)
