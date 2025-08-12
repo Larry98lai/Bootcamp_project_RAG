@@ -1,6 +1,6 @@
 import os
 import io
-import concurrent.futures
+import streamlit as st
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
@@ -9,27 +9,25 @@ from PyPDF2.errors import PdfReadError
 from docx import Document
 from crewai_tools import RagTool
 import threading
-from dotenv import load_dotenv
 
-load_dotenv('.env')
-
-
-def download_drive_files(folder_id, service_account_path=None, output_dir="downloaded_files"):
+def download_drive_files(folder_id, output_dir="downloaded_files"):
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-    # Read service account path from .env if not provided
-    if service_account_path is None:
-        service_account_path = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH")
-    credentials = service_account.Credentials.from_service_account_file(
-        service_account_path, scopes=SCOPES)
 
+    # Load credentials directly from Streamlit secrets
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"], scopes=SCOPES
+    )
+
+    # Build the Drive API service
     service = build('drive', 'v3', credentials=credentials)
 
+    # Query all files in the folder
     query = f"'{folder_id}' in parents and trashed = false"
     results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
     files = results.get('files', [])
 
     if not files:
-        print("No files found.")
+        st.write("No files found in Google Drive folder.")
         return []
 
     os.makedirs(output_dir, exist_ok=True)
@@ -44,12 +42,13 @@ def download_drive_files(folder_id, service_account_path=None, output_dir="downl
         if file['mimeType'] not in [
             'application/pdf',
             'text/plain',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ]:
             continue
 
-        # Skip download if file already exists
+        # Skip if already downloaded
         if os.path.exists(file_path):
-            print(f"[SKIP] Already exists: {file_name}")
+            st.write(f"[SKIP] Already exists: {file_name}")
             downloaded_files.append(file_path)
             continue
 
@@ -61,11 +60,10 @@ def download_drive_files(folder_id, service_account_path=None, output_dir="downl
         while not done:
             status, done = downloader.next_chunk()
 
-        print(f"Downloaded: {file_name}")
+        st.write(f"Downloaded: {file_name}")
         downloaded_files.append(file_path)
 
     return downloaded_files
-
 
 def extract_text_from_file(file_path):
     if file_path.endswith(".pdf"):

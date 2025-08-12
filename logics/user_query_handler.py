@@ -1,36 +1,54 @@
 # Common imports
 import os
+import json
+import tempfile
+import streamlit as st
 from dotenv import load_dotenv
-load_dotenv('.env')
 from openai import OpenAI
 import tiktoken
 import time
 import re
 
-# Pass the API Key to the OpenAI Client and Exa.ai
-openai_api_key = os.getenv('OPENAI_API_KEY')
-Exa_api_key=(os.getenv("EXA_API_KEY"))
+# Detect if running on Streamlit Cloud (secrets available)
+IS_STREAMLIT_CLOUD = bool(st.secrets)
 
-# Import the key CrewAI classes
+if IS_STREAMLIT_CLOUD:
+    # Load from Streamlit secrets
+    openai_api_key = st.secrets["OPENAI_API_KEY"]
+    exa_api_key = st.secrets["EXA_API_KEY"]
+
+    # Create a temporary Google service account JSON file
+    from google.oauth2 import service_account
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmpfile:
+        json.dump(st.secrets["gcp_service_account"], tmpfile)
+        SERVICE_ACCOUNT_PATH = tmpfile.name
+
+else:
+    # Load from local .env
+    load_dotenv('.env')
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    exa_api_key = os.getenv("EXA_API_KEY")
+    SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH")
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=openai_api_key)
+
+# Import CrewAI classes
 from crewai import Agent, Task, Crew
-from crewai_tools import WebsiteSearchTool
-from crewai_tools import EXASearchTool
-import sys, os
-
+from crewai_tools import WebsiteSearchTool, EXASearchTool
+import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from content.driver import download_drive_files, build_rag_tool_from_files
 
-#this is the google drive - https://drive.google.com/drive/folders/13BJY5qfprzXXK_MGnN06Jz_KWnJqOZZz
-#this is the json file downloaded from google cloud
+# Google Drive folder
 FOLDER_ID = "1B8fvzo_LiLbXDp3Y2vq8yWHOOH_V-BD-"
-SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH")
 
 # Step 1: Download files
 downloaded_files = download_drive_files(FOLDER_ID, SERVICE_ACCOUNT_PATH)
 
 # Step 2: Create RAG tool and Exa search tool
 rag_tool = build_rag_tool_from_files(downloaded_files)
-exa_search_tool = EXASearchTool()
+exa_search_tool = EXASearchTool(api_key=exa_api_key)
 
 # Create a new instance of the WebsiteSearchTool
 # Set the base URL of a website, e.g., "https://example.com/", so that the tool can search for sub-pages on that website
