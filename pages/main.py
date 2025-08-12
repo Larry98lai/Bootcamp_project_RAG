@@ -13,7 +13,7 @@ import time
 import sys, os, re
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from ..logics.user_query_handler import response_generator_from_crewai
+from logics.user_query_handler import response_generator_from_crewai
 
 st.title("AI-Powered Mental Wellness Companion")
 
