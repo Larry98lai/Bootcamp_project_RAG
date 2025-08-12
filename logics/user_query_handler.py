@@ -20,7 +20,7 @@ if IS_STREAMLIT_CLOUD:
     # Create a temporary Google service account JSON file
     from google.oauth2 import service_account
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmpfile:
-        json.dump(st.secrets["gcp_service_account"], tmpfile)
+        json.dump(dict(st.secrets["gcp_service_account"]), tmpfile)
         SERVICE_ACCOUNT_PATH = tmpfile.name
 
 else:
