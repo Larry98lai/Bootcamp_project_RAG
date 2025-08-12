@@ -53,12 +53,11 @@ def download_drive_files(folder_id, output_dir="downloaded_files"):
             continue
 
         request = service.files().get_media(fileId=file_id)
-        fh = io.FileIO(file_path, 'wb')
-        downloader = MediaIoBaseDownload(fh, request)
-
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
+        with io.FileIO(file_path, 'wb') as fh:
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
 
         st.write(f"Downloaded: {file_name}")
         downloaded_files.append(file_path)

@@ -1,52 +1,43 @@
-# Common imports
 import os
 import json
 import tempfile
 import streamlit as st
-from dotenv import load_dotenv
 from openai import OpenAI
-import tiktoken
-import time
-import re
+import sys
 
-# Detect if running on Streamlit Cloud (secrets available)
-IS_STREAMLIT_CLOUD = bool(st.secrets)
+# Check if running on Streamlit Cloud with secrets
+if not st.secrets:
+    raise RuntimeError("Streamlit secrets not found. Please add your secrets in Streamlit Cloud.")
 
-if IS_STREAMLIT_CLOUD:
-    # Load from Streamlit secrets
-    openai_api_key = st.secrets["OPENAI_API_KEY"]
-    exa_api_key = st.secrets["EXA_API_KEY"]
+# Load API keys from Streamlit secrets
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+exa_api_key = st.secrets["EXA_API_KEY"]
 
-    # Create a temporary Google service account JSON file
-    from google.oauth2 import service_account
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w") as tmpfile:
-        json.dump(dict(st.secrets["gcp_service_account"]), tmpfile)
-        SERVICE_ACCOUNT_PATH = tmpfile.name
-
-else:
-    # Load from local .env
-    load_dotenv('.env')
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    exa_api_key = os.getenv("EXA_API_KEY")
-    SERVICE_ACCOUNT_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH")
+# Create a temporary Google service account JSON file
+from google.oauth2 import service_account
+with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w") as tmpfile:
+    json.dump(dict(st.secrets["gcp_service_account"]), tmpfile)
+    SERVICE_ACCOUNT_PATH = tmpfile.name
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=openai_api_key)
 
-# Import CrewAI classes
+# Import CrewAI classes and other imports
 from crewai import Agent, Task, Crew
 from crewai_tools import WebsiteSearchTool, EXASearchTool
-import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from content.driver import download_drive_files, build_rag_tool_from_files
 
 # Google Drive folder
 FOLDER_ID = "1B8fvzo_LiLbXDp3Y2vq8yWHOOH_V-BD-"
 
-# Step 1: Download files
-downloaded_files = download_drive_files(FOLDER_ID, SERVICE_ACCOUNT_PATH)
+# Define download folder to avoid conflicts
+DOWNLOAD_FOLDER = "downloaded_files"
 
-# Step 2: Create RAG tool and Exa search tool
+# Download files from Google Drive
+downloaded_files = download_drive_files(FOLDER_ID, SERVICE_ACCOUNT_PATH, output_dir=DOWNLOAD_FOLDER)
+
+# Build RAG and EXA tools
 rag_tool = build_rag_tool_from_files(downloaded_files)
 exa_search_tool = EXASearchTool(api_key=exa_api_key)
 
