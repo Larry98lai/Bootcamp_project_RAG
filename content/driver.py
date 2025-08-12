@@ -9,6 +9,7 @@ from PyPDF2.errors import PdfReadError
 from docx import Document
 from crewai_tools import RagTool
 import threading
+import concurrent.futures
 
 def download_drive_files(folder_id, output_dir="downloaded_files"):
     SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
